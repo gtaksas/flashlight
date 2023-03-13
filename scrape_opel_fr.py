@@ -4,6 +4,7 @@ import sql_insert
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from datetime import date
 
 
 class scrape:
@@ -11,7 +12,8 @@ class scrape:
     driver = webdriver.Chrome('C:/Program Files/chrome webdriver/chromedriver.exe') 
 
     # Navigate to the webpage 
-    driver.get('https://store.opel.fr/trim/configurable/corsa-citadine') 
+    url = 'https://store.opel.fr/trim/configurable/corsa-citadine'
+    driver.get(url) 
 
     # Check if an cookie page is present
     try:
@@ -40,6 +42,23 @@ class scrape:
         
         # Parse the new page source using BeautifulSoup 
         soup = BeautifulSoup(new_page_source, 'html.parser') 
+
+        # Find market
+        market = "?"
+
+        # Find brand
+        brand_title = soup.find('p', class_='title-primary').text.strip().split()
+        brand = brand_title[0]
+        
+        # Find model
+        model = soup.find('span', class_='title').text.strip()
+
+        # Find bodystyle
+        bodystyle = "?"
+
+        # Find serie
+        serie_line = soup.find('span', class_='specs-title').text.strip().split()
+        serie = serie_line[0]
         
         # Find and store all the div elements that contain the desired data
         inner = soup.find_all('div', class_='inner')
@@ -54,57 +73,83 @@ class scrape:
                 engineTitle_list = engineTitle.split()
                 # Print the extracted data for the current page - FOR TEST PURPOSES ONLY! - DELETE IT LATER!!!
                 print(f'engineTitle_list: {engineTitle_list}')
+                # set entity
+                entity = ' '.join(engineTitle_list[0: 4])
+                # set engine
+                engine = ' '.join([engineTitle_list[0], engineTitle_list[engineTitle_list.index('ch')-1]])
+                # set horsepower
+                horsepower = ' '.join([engineTitle_list[engineTitle_list.index('ch')-1], 'ch'])
+
             if engine_desc_span is not None:
                 engineDescription = engine_desc_span.text.strip()
                 engineDescription_list = engineDescription.split(', ')
                 # Print the extracted data for the current page - FOR TEST PURPOSES ONLY! - DELETE IT LATER!!!
                 print(f'engineDescription_list: {engineDescription_list}')
+                # set fuel
+                fuel = engineDescription_list[0]
+                # set transmission_type
+                transmission_type = engineDescription_list[1]
+
             if engine_price is not None:
                 enginePrice = engine_price.text.strip()
                 price = enginePrice
-                # Print the extracted data for the current page - FOR TEST PURPOSES ONLY! - DELETE IT LATER!!!
-                print('Price: ' + price)
 
-            #market = soup.find('span', class_='category-label', text='Marché:').next_sibling.strip() 
-            #brand = soup.find('span', class_='category-label', text='Marque:').next_sibling.strip() 
-            #model = soup.find('span', class_='category-label', text='Modèle:').next_sibling.strip() 
-            #entity = soup.find('span', class_='category-label', text='Entité:').next_sibling.strip() 
-            #engine = soup.find('span', class_='category-label', text='Moteur:').next_sibling.strip() 
-            #price = soup.find('span', class_='category-label', text='Prix (TTC):').next_sibling.strip() 
-            #horsepower = soup.find('span', class_='category-label', text='Puissance:').next_sibling.strip() 
-            #bodystyle = soup.find('span', class_='category-label', text='Carrosserie:').next_sibling.strip() 
-            #serie = soup.find('span', class_='category-label', text='Série:').next_sibling.strip() 
-            #fuel = soup.find('span', class_='category-label', text='Carburant:').next_sibling.strip() 
-            #consumption = soup.find('span', class_='category-label', text='Consommation:').next_sibling.strip() 
-            #emission_co2 = soup.find('span', class_='category-label', text='Émission CO2:').next_sibling.strip() 
-            #transmission = soup.find('span', class_='category-label', text='Boîte de vitesses:').next_sibling.strip() 
-            #transmission_type = soup.find('span', class_='category-label', text='Type de boîte de vitesses:').next_sibling.strip() 
-            #driveline = soup.find('span', class_='category-label', text='Chaîne cinématique:').next_sibling.strip() 
-            #reaperstring = soup.find('span', class_='reaperstring').text.strip() 
-            #matchstring = soup.find('span', class_='matchstring').text.strip() 
-            #datasource = soup.find('span', class_='datasource').text.strip() 
-            #datum = soup.find('span', class_='datum').text.strip() 
+            
+            # We will need to click each inner element first (after the inner for loop!)!!!!!!!
+            # Find consumption
+            consumption = soup.find('div', {'data-testid':'TESTING_TECH_INFO_CONSUMPTION'}).text.strip()
+
+            # Find emission_co2
+            emission_co2 = soup.find('div', class_='emmisions-value').text.strip() 
+
+            # set transmission
+            featureList = soup.find_all('ul', class_='featureList featureListWithValue')
+            featureInfos = [rep.next_sibling.strip() for rep in featureList if rep.find('span', text_='Nombre de rapports')]
+            num_of_reports = featureList[-2].find('span', class_='featureValue').text
+            transmission = transmission_type + num_of_reports
+
+            # set driveline
+            driveline = "?"
+            
+            # set reaperstring
+            reaperstring = market + brand + model + serie + entity.replace(' ', '') + transmission + driveline
+
+            #set matchstring
+            ismatch = reaperstring
+            matchstring = ismatch == reaperstring
+            #matchsql = sql_insert.cur.execute('SELECT reaperstring form cars')
+            #ismatch = matchsql.fetchall()
+            #for match in matchsql:
+                #matchstring = ismatch == reaperstring
+            #if matchstring == True: UPDATE SET WHERE else: INSERT
+
+            # set source
+            datasource = url.split('/')
+            datasource = datasource[datasource.index('trim')+1]
+
+            # Get the current date
+            datum = date.today()
             
             # Print the extracted data for the current page - FOR TEST PURPOSES ONLY! - DELETE IT LATER!!!
-            #print(f'Market: {market}') 
-            #print(f'Brand: {brand}') 
-            #print(f'Model: {model}') 
-            #print(f'Entity: {entity}') 
-            #print(f'Engine: {engine}') 
-            #print(f'Price: {price}') 
-            #print(f'Horsepower: {horsepower}')
-            #print(f'{bodystyle}')
-            #print(f'{serie}')
-            #print(f'{fuel}')
-            #print(f'{consumption}')
-            #print(f'{emission_co2}')
-            #print(f'{transmission}')
-            #print(f'{transmission_type}')
-            #print(f'{driveline}')
-            #print(f'{reaperstring}')
-            #print(f'{matchstring}')
-            #print(f'{datasource}')
-            #print(f'{datum}')
+            print(f'Market: {market}') 
+            print(f'Brand: {brand}') 
+            print(f'Model: {model}') 
+            print(f'Entity: {entity}') 
+            print(f'Engine: {engine}') 
+            print(f'Price: {price}') 
+            print(f'Horsepower: {horsepower}')
+            print(f'Bodystyle: {bodystyle}')
+            print(f'Serie: {serie}')
+            print(f'Fuel: {fuel}')
+            print(f'Consumption: {consumption}')
+            print(f'Emission: {emission_co2}')
+            print(f'Transmittion: {transmission}')
+            print(f'Transmittion type: {transmission_type}')
+            print(f'Driveline: {driveline}')
+            print(f'Reaperstring: {reaperstring}')
+            print(f'Matchstring: {matchstring}')
+            print(f'Datasource: {datasource}')
+            print(f'Datum: {datum}')
 
             # Call store data in MySQL function  __WE WILL NEED THIS ONE LATER ON!!!__ (DON'T FORGET IT)
             #sql_insert.store()
