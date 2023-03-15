@@ -1,18 +1,10 @@
-import mysql.connector
-import YOUR_PASSWORD
+import connect_db
 
-db1 = mysql.connector.connect(
-    host='localhost',
-    user='root',
-    passwd=YOUR_PASSWORD.pw,
-    database='flashlight_scrape'
-)
+connect_db.mycursor.execute("SHOW columns FROM cars")
+print([column[0] for column in connect_db.mycursor.fetchall()])
 
-mycursor = db1.cursor()
-
-
-mycursor.execute("SELECT * FROM cars")
-result = mycursor.fetchall()
+connect_db.mycursor.execute("SELECT * FROM cars")
+result = connect_db.mycursor.fetchall()
 for row in result:
     print(row)
     print("\n")
